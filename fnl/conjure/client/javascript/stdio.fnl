@@ -41,8 +41,70 @@
                        (cfg [:mapping :start]))]))))
 
 
+; Returns whether a given expression node is an assignment expression
+; An assignment expression seems to be a weird case where it does not actually
+; evaluate to anything so it seems more like a statement
+(defn is-assignment?
+  [node]
+  (and (= (node:child_count) 1)
+       (let [child (node:child 0)]
+         (= (child:type) "assignment"))))
+
+(defn is-expression?
+  [node]
+  (and (= "expression_statement" (node:type))
+       (not (is-assignment? node))))
+
+; Returns whether the string passed in is a simple javascript
+; expression or something more complicated. If it is an expression,
+; it can be passed to the REPL as is.
+; Otherwise, we evaluate it as a multiline string using "eval". This is a simple
+; way for us to not worry about extra or missing newlines in the middle of the code
+; we are trying to evaluate at the REPL.
+;
+; For example, this javascript code:
+;   for i in range(5):
+;       print(i)
+;   def foo():
+;       print("bar")
+; while valid javascript code, would not work in the REPL because the REPL expects 2 newlines
+; after the for loop body.
+;
+; In addition, this javascript code:
+;   for i in range(5):
+;       print(i)
+;
+;       print(i)
+; while also valid javascript code, would not work in the REPL because the REPL thinks the for loop
+; body is over after the first "print(i)" (because it is followed by 2 newlines).
+;
+; Sending statements like these as a multiline string to javascript's eval seems to be a decent workaround
+; for this. Another option that I have seen used in some other similar projects is sending the statement
+; as a "bracketed paste" (https://cirw.in/blog/bracketed-paste) so the REPL treats the input as if it were
+; "pasted", but I couldn't get this working.
+(defn str-is-javascript-expr?
+  [s]
+  (let [parser (vim.treesitter.get_string_parser s "javascript")
+        result (parser:parse)
+        tree (a.get result 1)
+        root (tree:root)]
+    (and (= 1 (root:child_count))
+         (is-expression? (root:child 0)))))
+
+
 (defn- prep-code [s]
   (.. s "\n"))
+
+; If, after pressing newline, the javascript interpreter expects more
+; input from you (as is the case after the first line of an if branch or for loop)
+; the javascript interpreter will output "..." to show that it is waiting for more input.
+; We want to detect these lines and ignore them.
+; Note: This is check will yield some false positives. For example if a user evaluates
+;   print("... <-- check out those dots")
+; the output will be flagged as one of these special "dots" lines. This could probably
+; be smarter, but will work for most normal cases for now.
+(defn- is-dots? [s]
+  (= (string.sub s 1 3) "..."))
 
 (defn format-msg [msg]
   (->> (str.split msg "\n")
@@ -92,6 +154,10 @@
 
 (defn get-help [code]
   (str.join "" ["help(" (str.trim code) ")"]))
+
+(defn doc-str [opts]
+  (when (str-is-javascript-expr? opts.code)
+    (eval-str (a.assoc opts :code (get-help opts.code)))))
 
 (defn- display-repl-status [status]
   (let [repl (state :repl)]

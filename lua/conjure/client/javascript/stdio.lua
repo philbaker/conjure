@@ -46,30 +46,54 @@ local function with_repl_or_warn(f, opts)
   end
 end
 _2amodule_locals_2a["with-repl-or-warn"] = with_repl_or_warn
+local function is_assignment_3f(node)
+  local function _3_()
+    local child = node:child(0)
+    return (child:type() == "assignment")
+  end
+  return ((node:child_count() == 1) and _3_())
+end
+_2amodule_2a["is-assignment?"] = is_assignment_3f
+local function is_expression_3f(node)
+  return (("expression_statement" == node:type()) and not is_assignment_3f(node))
+end
+_2amodule_2a["is-expression?"] = is_expression_3f
+local function str_is_javascript_expr_3f(s)
+  local parser = vim.treesitter.get_string_parser(s, "javascript")
+  local result = parser:parse()
+  local tree = a.get(result, 1)
+  local root = tree:root()
+  return ((1 == root:child_count()) and is_expression_3f(root:child(0)))
+end
+_2amodule_2a["str-is-javascript-expr?"] = str_is_javascript_expr_3f
 local function prep_code(s)
   return (s .. "\n")
 end
 _2amodule_locals_2a["prep-code"] = prep_code
+local function is_dots_3f(s)
+  return (string.sub(s, 1, 3) == "...")
+end
+_2amodule_locals_2a["is-dots?"] = is_dots_3f
 local function format_msg(msg)
-  local function _3_(_241)
-    return not __fnl_global__is_2ddots_3f(_241)
-  end
   local function _4_(_241)
+    return not is_dots_3f(_241)
+  end
+  local function _5_(_241)
     return ("" ~= _241)
   end
-  return a.filter(_3_, a.filter(_4_, str.split(msg, "\n")))
+  return a.filter(_4_, a.filter(_5_, str.split(msg, "\n")))
 end
 _2amodule_2a["format-msg"] = format_msg
 local function get_console_output_msgs(msgs)
-  local function _5_(_241)
+  local function _6_(_241)
     return (comment_prefix .. "(out) " .. _241)
   end
-  return a.map(_5_, a.butlast(msgs))
+  return a.map(_6_, a.butlast(msgs))
 end
 _2amodule_locals_2a["get-console-output-msgs"] = get_console_output_msgs
 local function get_expression_result(msgs)
   local result = a.last(msgs)
-  if (a["nil?"](result) or __fnl_global__is_2ddots_3f(result)) then
+  if (a["nil?"](result) or is_dots_3f(result)) then
     return nil
   else
     return result
@@ -77,10 +101,10 @@ local function get_expression_result(msgs)
 end
 _2amodule_locals_2a["get-expression-result"] = get_expression_result
 local function unbatch(msgs)
-  local function _7_(_241)
+  local function _8_(_241)
     return (a.get(_241, "out") or a.get(_241, "err"))
   end
-  return str.join("", a.map(_7_, msgs))
+  return str.join("", a.map(_8_, msgs))
 end
 _2amodule_2a["unbatch"] = unbatch
 local function log_repl_output(msgs)
@@ -99,8 +123,8 @@ local function log_repl_output(msgs)
 end
 _2amodule_locals_2a["log-repl-output"] = log_repl_output
 local function eval_str(opts)
-  local function _10_(repl)
-    local function _11_(msgs)
+  local function _11_(repl)
+    local function _12_(msgs)
       log_repl_output(msgs)
       if opts["on-result"] then
         local msgs0 = format_msg(unbatch(msgs))
@@ -110,9 +134,9 @@ local function eval_str(opts)
         return nil
       end
     end
-    return repl.send(prep_code(opts.code), _11_, {["batch?"] = true})
+    return repl.send(prep_code(opts.code), _12_, {["batch?"] = true})
   end
-  return with_repl_or_warn(_10_)
+  return with_repl_or_warn(_11_)
 end
 _2amodule_2a["eval-str"] = eval_str
 local function eval_file(opts)
@@ -123,6 +147,14 @@ local function get_help(code)
   return str.join("", {"help(", str.trim(code), ")"})
 end
 _2amodule_2a["get-help"] = get_help
+local function doc_str(opts)
+  if str_is_javascript_expr_3f(opts.code) then
+    return eval_str(a.assoc(opts, "code", get_help(opts.code)))
+  else
+    return nil
+  end
+end
+_2amodule_2a["doc-str"] = doc_str
 local function display_repl_status(status)
   local repl = state("repl")
   if repl then
@@ -147,25 +179,25 @@ local function start()
   if state("repl") then
     return log.append({(comment_prefix .. "Can't start, REPL is already running."), (comment_prefix .. "Stop the REPL with " .. config["get-in"]({"mapping", "prefix"}) .. cfg({"mapping", "stop"}))}, {["break?"] = true})
   else
-    local function _15_()
+    local function _17_()
       return vim.treesitter.require_language("javascript")
     end
-    if not pcall(_15_) then
+    if not pcall(_17_) then
       return log.append({(comment_prefix .. "(error) The javascript client requires a javascript treesitter parser in order to function."), (comment_prefix .. "(error) See https://github.com/nvim-treesitter/nvim-treesitter"), (comment_prefix .. "(error) for installation instructions.")})
     else
-      local function _16_()
-        local function _17_(repl)
-          local function _18_(msgs)
+      local function _18_()
+        local function _19_(repl)
+          local function _20_(msgs)
             return nil
           end
-          return repl.send(prep_code(""), _18_, nil)
+          return repl.send(prep_code(""), _20_, nil)
         end
-        return display_repl_status("started", with_repl_or_warn(_17_))
+        return display_repl_status("started", with_repl_or_warn(_19_))
       end
-      local function _19_(err)
+      local function _21_(err)
         return display_repl_status(err)
       end
-      local function _20_(code, signal)
+      local function _22_(code, signal)
         if (("number" == type(code)) and (code > 0)) then
           log.append({(comment_prefix .. "process exited with code " .. code)})
         else
@@ -176,10 +208,10 @@ local function start()
         end
         return stop()
       end
-      local function _23_(msg)
+      local function _25_(msg)
         return log.dbg(format_msg(unbatch({msg})), {["join-first?"] = true})
       end
-      return a.assoc(state(), "repl", stdio.start({["prompt-pattern"] = cfg({"prompt-pattern"}), cmd = cfg({"command"}), ["delay-stderr-ms"] = cfg({"delay-stderr-ms"}), ["on-success"] = _16_, ["on-error"] = _19_, ["on-exit"] = _20_, ["on-stray-output"] = _23_}))
+      return a.assoc(state(), "repl", stdio.start({["prompt-pattern"] = cfg({"prompt-pattern"}), cmd = cfg({"command"}), ["delay-stderr-ms"] = cfg({"delay-stderr-ms"}), ["on-success"] = _18_, ["on-error"] = _21_, ["on-exit"] = _22_, ["on-stray-output"] = _25_}))
     end
   end
 end
@@ -193,11 +225,11 @@ local function on_exit()
 end
 _2amodule_2a["on-exit"] = on_exit
 local function interrupt()
-  local function _26_(repl)
+  local function _28_(repl)
     local uv = vim.loop
     return uv.kill(repl.pid, uv.constants.SIGINT)
   end
-  return with_repl_or_warn(_26_)
+  return with_repl_or_warn(_28_)
 end
 _2amodule_2a["interrupt"] = interrupt
 local function on_filetype()
