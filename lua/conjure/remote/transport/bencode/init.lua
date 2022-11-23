@@ -10,7 +10,7 @@ do
   _2amodule_2a["aniseed/locals"] = {}
   _2amodule_locals_2a = (_2amodule_2a)["aniseed/locals"]
 end
-local autoload = (require("conjure.aniseed.autoload")).autoload
+local autoload = (require("aniseed.autoload")).autoload
 local a, impl = autoload("conjure.aniseed.core"), autoload("conjure.remote.transport.bencode.impl")
 do end (_2amodule_locals_2a)["a"] = a
 _2amodule_locals_2a["impl"] = impl

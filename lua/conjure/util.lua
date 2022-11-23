@@ -10,7 +10,7 @@ do
   _2amodule_2a["aniseed/locals"] = {}
   _2amodule_locals_2a = (_2amodule_2a)["aniseed/locals"]
 end
-local autoload = (require("conjure.aniseed.autoload")).autoload
+local autoload = (require("aniseed.autoload")).autoload
 local nvim = autoload("conjure.aniseed.nvim")
 do end (_2amodule_locals_2a)["nvim"] = nvim
 local function wrap_require_fn_call(mod, f)

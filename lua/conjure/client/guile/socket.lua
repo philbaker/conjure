@@ -10,7 +10,7 @@ do
   _2amodule_2a["aniseed/locals"] = {}
   _2amodule_locals_2a = (_2amodule_2a)["aniseed/locals"]
 end
-local autoload = (require("conjure.aniseed.autoload")).autoload
+local autoload = (require("aniseed.autoload")).autoload
 local a, client, config, extract, log, mapping, nvim, socket, str, text, ts, _ = autoload("conjure.aniseed.core"), autoload("conjure.client"), autoload("conjure.config"), autoload("conjure.extract"), autoload("conjure.log"), autoload("conjure.mapping"), autoload("conjure.aniseed.nvim"), autoload("conjure.remote.socket"), autoload("conjure.aniseed.string"), autoload("conjure.text"), autoload("conjure.tree-sitter"), nil
 _2amodule_locals_2a["a"] = a
 _2amodule_locals_2a["client"] = client
@@ -152,12 +152,12 @@ _2amodule_2a["disconnect"] = disconnect
 local function parse_guile_result(s)
   if s:find("scheme@%([%w%-%s]+%)> ") then
     local ind1, ind2, result = s:find("%$%d+ = ([^\n]+)\n")
-    return {["done?"] = true, result = result, ["error?"] = false}
+    return {["done?"] = true, ["error?"] = false, result = result}
   else
     if s:find("scheme@%([%w%-%s]+%) %[%d+%]>") then
       return {["done?"] = true, ["error?"] = true, result = nil}
     else
-      return {result = s, ["done?"] = false, ["error?"] = false}
+      return {["done?"] = false, ["error?"] = false, result = s}
     end
   end
 end
